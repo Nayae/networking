@@ -1,5 +1,4 @@
 ﻿using System.Diagnostics;
-using System.Net;
 using System.Net.Sockets;
 
 namespace Client;
@@ -7,43 +6,39 @@ namespace Client;
 internal static class ClientProgram
 {
     private static readonly Dictionary<int, long> _times = new Dictionary<int, long>();
+
+    private static UdpClient _client;
     private static readonly AutoResetEvent _autoResetEvent = new AutoResetEvent(false);
 
-    private static async Task Main()
+    private static void Main()
     {
-        var client = new TcpClient();
-        // await client.ConnectAsync(IPAddress.Parse("134.209.202.27"), 8080);
-        await client.ConnectAsync(IPAddress.Loopback, 8080);
+        _client = new UdpClient("127.0.0.1", 8080);
 
-        new Thread(() => _ = HandleSend(client)).Start();
-        new Thread(() => _ = HandleReceive(client)).Start();
-
-        Console.ReadKey();
+        new Thread(() => _ = HandleSend()).Start();
+        new Thread(() => _ = HandleReceive()).Start();
     }
 
-    private static async Task HandleSend(TcpClient client)
+    private static async Task HandleSend()
     {
         while (true)
         {
-            var epoch = nanoTime();
+            var epoch = GetNanoTime();
             var indexEncoded = BitConverter.GetBytes(_times.Count);
             _times[_times.Count] = epoch;
 
-            await client.Client.SendAsync(indexEncoded);
+            await _client.SendAsync(indexEncoded);
             _autoResetEvent.WaitOne();
         }
     }
 
-    private static async Task HandleReceive(TcpClient client)
+    private static async Task HandleReceive()
     {
-        var receiveBuffer = new byte[1024];
-
         while (true)
         {
-            await client.Client.ReceiveAsync(receiveBuffer);
-            var end = nanoTime();
+            var result = await _client.ReceiveAsync();
+            var index = BitConverter.ToInt32(result.Buffer);
 
-            var index = BitConverter.ToInt32(receiveBuffer);
+            var end = GetNanoTime();
             var delta = end - _times[index];
 
             Console.WriteLine($"Roundtrip {index} took: {(double)delta / 1_000_000}ms");
@@ -51,7 +46,7 @@ internal static class ClientProgram
         }
     }
 
-    private static long nanoTime()
+    private static long GetNanoTime()
     {
         var nano = 10000L * Stopwatch.GetTimestamp();
         nano /= TimeSpan.TicksPerMillisecond;
