@@ -7,15 +7,16 @@ namespace Client;
 internal static class ClientProgram
 {
     private static readonly Dictionary<int, long> _times = new Dictionary<int, long>();
+    private static readonly AutoResetEvent _autoResetEvent = new AutoResetEvent(false);
 
     private static async Task Main()
     {
         var client = new TcpClient();
-        await client.ConnectAsync(IPAddress.Parse("134.209.202.27"), 8080);
-        // await client.ConnectAsync(IPAddress.Loopback, 8080);
+        // await client.ConnectAsync(IPAddress.Parse("134.209.202.27"), 8080);
+        await client.ConnectAsync(IPAddress.Loopback, 8080);
 
-        _ = HandleSend(client);
-        _ = HandleReceive(client);
+        new Thread(() => _ = HandleSend(client)).Start();
+        new Thread(() => _ = HandleReceive(client)).Start();
 
         Console.ReadKey();
     }
@@ -28,14 +29,8 @@ internal static class ClientProgram
             var indexEncoded = BitConverter.GetBytes(_times.Count);
             _times[_times.Count] = epoch;
 
-            var socketAsyncEventArgs = new SocketAsyncEventArgs();
-            socketAsyncEventArgs.SendPacketsElements =
-            [
-                new SendPacketsElement(indexEncoded)
-            ];
-
-            client.Client.SendPacketsAsync(socketAsyncEventArgs);
-            await Task.Delay(10);
+            await client.Client.SendAsync(indexEncoded);
+            _autoResetEvent.WaitOne();
         }
     }
 
@@ -52,6 +47,7 @@ internal static class ClientProgram
             var delta = end - _times[index];
 
             Console.WriteLine($"Roundtrip {index} took: {(double)delta / 1_000_000}ms");
+            _autoResetEvent.Set();
         }
     }
 

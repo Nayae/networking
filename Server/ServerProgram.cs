@@ -29,6 +29,8 @@ internal static class ServerProgram
 
     private static async Task Main()
     {
+        ThreadPool.SetMinThreads(10, 25);
+
         _ = Task.Run(async () =>
         {
             while (true)
