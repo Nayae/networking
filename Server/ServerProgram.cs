@@ -96,6 +96,13 @@ internal static class ServerProgram
 
     private static void HandlePacket(ConnectionPacket packet)
     {
-        packet.connection.Socket.Send(packet.data);
+        ThreadPool.QueueUserWorkItem(
+            callBack: p =>
+            {
+                p.connection.Socket.Send(packet.data);
+            },
+            state: packet,
+            preferLocal: true
+        );
     }
 }

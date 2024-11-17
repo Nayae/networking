@@ -11,8 +11,8 @@ internal static class ClientProgram
     private static async Task Main()
     {
         var client = new TcpClient();
-        // await client.ConnectAsync(IPAddress.Parse("134.209.202.27"), 8080);
-        await client.ConnectAsync(IPAddress.Loopback, 8080);
+        await client.ConnectAsync(IPAddress.Parse("134.209.202.27"), 8080);
+        // await client.ConnectAsync(IPAddress.Loopback, 8080);
 
         _ = HandleSend(client);
         _ = HandleReceive(client);
