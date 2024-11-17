@@ -6,6 +6,8 @@ namespace Client;
 
 internal static class ClientProgram
 {
+    private static readonly Dictionary<int, long> _times = new Dictionary<int, long>();
+
     private static async Task Main()
     {
         var client = new TcpClient();
@@ -20,22 +22,20 @@ internal static class ClientProgram
 
     private static async Task HandleSend(TcpClient client)
     {
-        var sendBuffer = new byte[1024];
-
         while (true)
         {
             var epoch = nanoTime();
-            var encoded = BitConverter.GetBytes(epoch);
-            Array.Copy(encoded, 0, sendBuffer, 0, encoded.Length);
+            var indexEncoded = BitConverter.GetBytes(_times.Count);
+            _times[_times.Count] = epoch;
 
             var socketAsyncEventArgs = new SocketAsyncEventArgs();
             socketAsyncEventArgs.SendPacketsElements =
             [
-                new SendPacketsElement(sendBuffer, 0, encoded.Length)
+                new SendPacketsElement(indexEncoded)
             ];
 
             client.Client.SendPacketsAsync(socketAsyncEventArgs);
-            await Task.Delay(1000);
+            await Task.Delay(10);
         }
     }
 
@@ -47,9 +47,11 @@ internal static class ClientProgram
         {
             await client.Client.ReceiveAsync(receiveBuffer);
             var end = nanoTime();
-            var start = BitConverter.ToInt64(receiveBuffer, 0);
 
-            Console.WriteLine($"Roundtrip took: {(double)(end - start) / 1_000_000}ms");
+            var index = BitConverter.ToInt32(receiveBuffer);
+            var delta = end - _times[index];
+
+            Console.WriteLine($"Roundtrip {index} took: {(double)delta / 1_000_000}ms");
         }
     }
 

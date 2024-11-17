@@ -39,6 +39,7 @@ internal static class ServerProgram
                 Console.WriteLine($"Active connections: {_connections.Count}");
                 Console.WriteLine($"Total packet count: {_connections.Sum(c => c.TotalPacketCount)}");
                 Console.WriteLine($"Total packet size: {_connections.Sum(c => c.TotalPacketSize)}");
+                Console.WriteLine($"Pending work item count: {ThreadPool.PendingWorkItemCount}");
             }
         });
 
