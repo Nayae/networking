@@ -1,4 +1,5 @@
-﻿using System.Net;
+﻿using System.Diagnostics;
+using System.Net;
 using System.Net.Sockets;
 using System.Text;
 
@@ -89,5 +90,9 @@ internal static class ServerProgram
 
     private static void HandlePacket(ConnectionPacket packet)
     {
+        Task.Run(async () =>
+        {
+            await packet.connection.Socket.SendAsync(packet.data);
+        }).Wait();
     }
 }
