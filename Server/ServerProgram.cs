@@ -40,6 +40,8 @@ internal static class ServerProgram
                 Console.WriteLine($"Total packet count: {_connections.Sum(c => c.TotalPacketCount)}");
                 Console.WriteLine($"Total packet size: {_connections.Sum(c => c.TotalPacketSize)}");
                 Console.WriteLine($"Pending work item count: {ThreadPool.PendingWorkItemCount}");
+                Console.WriteLine($"Thread count: {ThreadPool.ThreadCount}");
+                Console.WriteLine($"Completed work item count: {ThreadPool.CompletedWorkItemCount}");
             }
         });
 
@@ -74,10 +76,15 @@ internal static class ServerProgram
 
                 var data = buffer[..length];
 
+                _ = Task.Run(async () =>
+                {
+                    await connection.Socket.SendAsync(data);
+                });
+
                 ThreadPool.QueueUserWorkItem(
                     callBack: HandlePacket,
                     state: new ConnectionPacket(connection, data),
-                    preferLocal: true
+                    preferLocal: false
                 );
             }
         }
